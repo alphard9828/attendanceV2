@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rekod Hadir — Staff Attendance Registry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#182338;
+    --ink-soft:#3c4661;
+    --paper:#f7f5f0;
+    --paper-line:#e3ddd0;
+    --card:#ffffff;
+    --brass:#a06a2c;
+    --brass-soft:#c98f4a;
+    --green:#2f6f4e;
+    --green-soft:#e5efe8;
+    --amber:#c9862f;
+    --amber-soft:#faf0e0;
+    --red:#a83b3b;
+    --red-soft:#f6e6e6;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image: linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 2.1em;
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px 80px;}
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);font-weight:500;}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:34px;margin:2px 0 0;letter-spacing:-0.01em;}
+  .badge-stack{display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);background:var(--card);border:1px solid var(--paper-line);padding:6px 12px;border-radius:20px;white-space:nowrap;display:flex;align-items:center;}
+
+  nav.tabs{display:flex;gap:6px;border-bottom:2px solid var(--ink);margin-bottom:26px;}
+  nav.tabs button{
+    font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:14px;
+    background:none;border:none;padding:11px 18px;cursor:pointer;color:var(--ink-soft);
+    border-radius:8px 8px 0 0;position:relative;top:2px;
+  }
+  nav.tabs button.active{color:var(--ink);background:var(--card);border:2px solid var(--ink);border-bottom:2px solid var(--card);}
+  nav.tabs button .num{font-family:'IBM Plex Mono',monospace;color:var(--brass);margin-right:6px;}
+
+  section.panel{display:none;}
+  section.panel.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .card{background:var(--card);border:1px solid var(--paper-line);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px;box-shadow:0 1px 2px rgba(20,25,40,.04);}
+  .card h2{font-family:'Fraunces',serif;font-size:19px;font-weight:600;margin:0 0 14px;}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;margin-top:14px;}
+  label:first-of-type{margin-top:0;}
+  input[type=text], input[type=url], input[type=search], textarea, select{
+    width:100%;padding:10px 12px;border:1.5px solid var(--paper-line);border-radius:7px;
+    font-family:'IBM Plex Mono',monospace;font-size:13.5px;background:#fdfcfa;color:var(--ink);
+  }
+  input:focus, textarea:focus, select:focus{outline:2px solid var(--brass-soft);outline-offset:1px;border-color:var(--brass-soft);}
+  textarea{resize:vertical;min-height:110px;line-height:1.6;}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:5px;line-height:1.5;}
+
+  button.btn{
+    font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:14px;
+    background:var(--ink);color:#fff;border:none;padding:11px 20px;border-radius:7px;cursor:pointer;
+  }
+  button.btn:hover{background:#0d1526;}
+  button.btn.secondary{background:transparent;color:var(--ink);border:1.5px solid var(--ink);}
+  button.btn.secondary:hover{background:#f0efe9;}
+  button.btn.brass{background:var(--brass);}
+  button.btn.brass:hover{background:#8a5522;}
+  button.btn.small{font-size:12.5px;padding:7px 14px;}
+  button.btn:disabled{opacity:.45;cursor:not-allowed;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+
+  details.howto{margin-top:16px;border:1px dashed var(--paper-line);border-radius:8px;padding:2px 16px;}
+  details.howto summary{cursor:pointer;font-weight:600;font-size:13.5px;padding:10px 0;color:var(--ink-soft);}
+  details.howto ol{margin:0 0 14px;padding-left:20px;font-size:13.5px;line-height:1.75;}
+  pre.code{background:#12172a;color:#dce3f0;padding:14px 16px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:12px;overflow-x:auto;line-height:1.6;}
+  .copy-btn{font-size:11.5px;font-family:'IBM Plex Mono',monospace;background:#232b45;color:#cfd8ea;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;margin-bottom:8px;}
+
+  .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0;}
+  .status-dot.ok{background:var(--green);}
+  .status-dot.off{background:#c7c0ac;}
+  .status-dot.warn{background:var(--amber);}
+  .status-dot.bad{background:var(--red);}
+
+  /* Generator */
+  .qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:18px;}
+  .qr-card{border:1px dashed var(--brass-soft);border-radius:8px;padding:14px;text-align:center;background:#fffdf9;}
+  .qr-card .qrbox{display:flex;justify-content:center;margin-bottom:8px;}
+  .qr-card .name{font-weight:600;font-size:13.5px;}
+  .qr-card .jawatan{font-size:11.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+
+  /* Scanner */
+  .scan-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .scan-controls select{width:auto;min-width:160px;}
+  .scan-stage{position:relative;width:100%;max-width:600px;margin:0 auto;border-radius:14px;overflow:hidden;background:#0c0f18;aspect-ratio:1/1;}
+  .scan-stage video{width:100%;height:100%;object-fit:cover;display:block;}
+  .scan-stage:fullscreen, .scan-stage:-webkit-full-screen{
+    max-width:100vw;width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;
+  }
+  .scan-frame{position:absolute;inset:12%;border:2.5px solid var(--brass-soft);border-radius:16px;pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.32);}
+  .scan-idle{color:#9aa4bd;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:center;padding:60px 20px;}
+  .fs-btn{position:absolute;top:12px;right:12px;background:rgba(12,15,24,.6);color:#fff;border:1px solid rgba(255,255,255,.35);
+    border-radius:7px;padding:7px 11px;font-size:12px;cursor:pointer;z-index:5;font-family:'IBM Plex Mono',monospace;}
+
+  .toast-layer{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:92%;max-width:480px;z-index:10;
+    display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+  .toast{
+    font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:14.5px;padding:12px 16px;border-radius:9px;
+    box-shadow:0 6px 18px rgba(0,0,0,.28);animation:toastIn .22s ease;display:flex;gap:8px;align-items:center;
+  }
+  .toast.out{animation:toastOut .25s ease forwards;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-10px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+  @keyframes toastOut{from{opacity:1;}to{opacity:0;transform:translateY(-8px);}}
+  .toast.success{background:var(--green-soft);color:var(--green);border:1px solid var(--green);}
+  .toast.dupe{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber);}
+  .toast.error{background:var(--red-soft);color:var(--red);border:1px solid var(--red);}
+
+  /* Manual search */
+  .search-wrap{margin-top:20px;border-top:1px dashed var(--paper-line);padding-top:16px;}
+  .search-results{margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;}
+  .search-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid var(--paper-line);border-radius:7px;background:#fdfcfa;}
+  .search-row .who{font-size:13.5px;}
+  .search-row .who b{font-weight:600;}
+  .search-row .who span{display:block;font-size:11.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+  .search-row.done{opacity:.55;}
+  .pill-present{font-family:'IBM Plex Mono',monospace;font-size:10.5px;background:var(--green-soft);color:var(--green);padding:2px 8px;border-radius:10px;}
+
+  /* KPI tiles */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  .kpi-tile{border:1px solid var(--paper-line);border-radius:9px;padding:16px;background:#fdfcfa;text-align:center;}
+  .kpi-tile .num{font-family:'Fraunces',serif;font-size:32px;font-weight:600;line-height:1;}
+  .kpi-tile .lbl{font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-top:6px;}
+  .kpi-tile.present .num{color:var(--green);}
+  .kpi-tile.absent .num{color:var(--amber);}
+
+  table.log{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px;}
+  table.log th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);border-bottom:2px solid var(--ink);padding:6px 8px;}
+  table.log td{padding:8px;border-bottom:1px solid var(--paper-line);}
+  table.log tr:last-child td{border-bottom:none;}
+  .count-pill{font-family:'IBM Plex Mono',monospace;background:var(--ink);color:#fff;padding:2px 9px;border-radius:12px;font-size:11.5px;}
+
+  .absentee-list{margin-top:14px;display:none;}
+  .absentee-list.open{display:block;}
+  .absentee-row{display:flex;justify-content:space-between;padding:7px 4px;border-bottom:1px solid var(--paper-line);font-size:13px;}
+  .absentee-row span{color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:11.5px;}
+
+  @media print{
+    body{background:#fff;}
+    header.top, nav.tabs, .card:not(.print-area), .no-print{display:none !important;}
+    .qr-grid{grid-template-columns:repeat(3,1fr);}
+    .qr-card{break-inside:avoid;border:1px solid #999;border-style:dashed;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <div class="eyebrow">Staff Attendance Registry</div>
+      <h1>Rekod Hadir</h1>
+    </div>
+    <div class="badge-stack no-print">
+      <div class="badge" id="sessionBadge"><span class="status-dot off" id="sessionDot"></span><span id="sessionBadgeText">No session set</span></div>
+      <div class="badge" id="syncBadge"><span class="status-dot ok" id="syncDot"></span><span id="syncBadgeText">Nothing queued</span></div>
+    </div>
+  </header>
+
+  <nav class="tabs no-print">
+    <button class="active" data-tab="setup"><span class="num">01</span>Setup</button>
+    <button data-tab="generate"><span class="num">02</span>Generate QR</button>
+    <button data-tab="scan"><span class="num">03</span>Scan Attendance</button>
+  </nav>
+
+  <!-- ================= SETUP ================= -->
+  <section class="panel active" id="panel-setup">
+    <div class="card">
+      <h2>Meeting / workshop details</h2>
+      <label>Session name (this goes into the Sheet with every scan)</label>
+      <input type="text" id="sessionName" placeholder="e.g. Mesyuarat Bulanan Jun 2026">
+      <label>Date</label>
+      <input type="text" id="sessionDate" placeholder="auto-filled with today's date">
+      <div class="row">
+        <button class="btn" id="saveSession">Save session</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Connect your Google Sheet</h2>
+      <p class="hint">Scans are sent to your own Google Sheet through a small Google Apps Script "Web App" — free, no server needed, stays entirely in your Google account.</p>
+      <label>Web App URL</label>
+      <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+      <div class="row">
+        <button class="btn secondary" id="saveUrl">Save URL</button>
+        <button class="btn secondary" id="testUrl">Send test row</button>
+      </div>
+      <p class="hint" id="urlStatus"></p>
+
+      <details class="howto">
+        <summary>How to set this up (one-time, ~3 minutes)</summary>
+        <p class="hint" style="margin-top:0;"><b>Already deployed the script before?</b> Replace the code in your existing Apps Script project with the version below (it also handles emailing QR codes), save, then <b>Deploy → Manage deployments → edit (pencil) → New version → Deploy</b>. Your Web App URL stays the same.</p>
+        <ol>
+          <li>Open <b>sheets.google.com</b> and create a new blank spreadsheet — this becomes your attendance log.</li>
+          <li>In the Sheet, go to <b>Extensions → Apps Script</b>.</li>
+          <li>Delete anything in the editor and paste in the code below.</li>
+          <li>Click the disk icon to save, name the project anything.</li>
+          <li>Click <b>Deploy → New deployment</b>. Click the gear icon, choose type <b>Web app</b>.</li>
+          <li>Set "Execute as" to <b>Me</b>, and "Who has access" to <b>Anyone</b>. Click <b>Deploy</b>, then authorize with your Google account when prompted.</li>
+          <li>Copy the <b>Web app URL</b> it gives you and paste it into the field above.</li>
+        </ol>
+        <button class="copy-btn" id="copyScript">Copy script</button>
+        <pre class="code" id="scriptBlock">function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+
+  if (data.action === 'send_qr') {
+    return sendQrEmail(data);
+  }
+
+  // default: log an attendance scan
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Attendance');
+  if (!sheet) {
+    sheet = ss.insertSheet('Attendance');
+    sheet.appendRow(['Session', 'Name', 'Jawatan', 'Date', 'Time']);
+  }
+  sheet.appendRow([data.session, data.name, data.jawatan, data.date, data.time]);
+  return ContentService.createTextOutput(JSON.stringify({status: 'ok'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function sendQrEmail(data) {
+  var base64 = data.qrImage.split(',')[1]; // strip the "data:image/png;base64," prefix
+  var blob = Utilities.newBlob(Utilities.base64Decode(base64), 'image/png', 'qr.png');
+  var html = '&lt;p&gt;Hi ' + data.name + ',&lt;/p&gt;' +
+    '&lt;p&gt;Here is your personal QR code for attendance (' + data.jawatan + '). ' +
+    'Please bring it — printed or on your phone — to be scanned at each session.&lt;/p&gt;' +
+    '&lt;img src="cid:qrImage"&gt;';
+  MailApp.sendEmail({
+    to: data.email,
+    subject: 'Your Attendance QR Code',
+    htmlBody: html,
+    inlineImages: {qrImage: blob}
+  });
+  return ContentService.createTextOutput(JSON.stringify({status: 'sent'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        <p class="hint">Note: because Apps Script doesn't send back normal CORS headers, this app fires requests "blind" (it can't read a confirmation back). Use "Send test row" above to confirm it's wired up correctly. Emailing QR codes uses <code>MailApp.sendEmail</code>, capped by Google's daily quota (~100/day personal Gmail, ~1,500/day Workspace).</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================= GENERATE ================= -->
+  <section class="panel" id="panel-generate">
+    <div class="card">
+      <h2>Add your staff list</h2>
+      <p class="hint">One person per line, format: <b>Name, Jawatan, Email (email optional)</b></p>
+      <textarea id="bulkInput" placeholder="Ahmad bin Ismail, Guru Besar, ahmad@example.com&#10;Siti Aminah, Penolong Kanan, siti@example.com&#10;Rajesh Kumar, Guru Disiplin"></textarea>
+      <div class="row">
+        <button class="btn" id="genBtn">Generate QR codes</button>
+        <button class="btn secondary" id="clearBtn">Clear all</button>
+        <button class="btn brass no-print" id="printBtn">Print / save as PDF</button>
+        <button class="btn brass no-print" id="emailBtn">Email QR codes to attendees</button>
+      </div>
+      <p class="hint" id="emailStatus"></p>
+    </div>
+
+    <div class="card print-area" id="qrCardWrap" style="display:none;">
+      <h2>Attendance QR codes <span class="count-pill" id="qrCount">0</span></h2>
+      <p class="hint no-print">Give each person their card, or print and cut them out. This same list also powers the "Expected" count and manual search fallback in the Scan tab.</p>
+      <div class="qr-grid" id="qrGrid"></div>
+    </div>
+  </section>
+
+  <!-- ================= SCAN ================= -->
+  <section class="panel" id="panel-scan">
+    <div class="card">
+      <h2>Live scanner</h2>
+      <p class="hint">Point the camera at an attendee's QR card. Each person is logged once per session automatically.</p>
+
+      <div class="scan-controls no-print">
+        <button class="btn" id="startCam">Start camera</button>
+        <button class="btn secondary" id="stopCam" disabled>Stop camera</button>
+        <select id="cameraSelect" style="display:none;"></select>
+        <label class="btn secondary" style="cursor:pointer;">
+          Upload QR photo
+          <input type="file" id="fileInput" accept="image/*" style="display:none;">
+        </label>
+      </div>
+
+      <div class="scan-stage" id="scanStage">
+        <div class="scan-idle" id="scanIdle">Camera off<br>tap "Start camera" above</div>
+        <video id="video" playsinline muted style="display:none;"></video>
+        <div class="scan-frame" id="scanFrame" style="display:none;"></div>
+        <button class="fs-btn no-print" id="fsBtn" style="display:none;">⤢ Fullscreen</button>
+        <div class="toast-layer" id="toastLayer"></div>
+      </div>
+
+      <div class="search-wrap">
+        <label>Can't find their QR? Search by name to check them in manually</label>
+        <input type="search" id="searchInput" placeholder="Type a name…">
+        <div class="search-results" id="searchResults"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Session snapshot</h2>
+      <div class="kpi-grid">
+        <div class="kpi-tile"><div class="num" id="kpiExpected">0</div><div class="lbl">Total expected</div></div>
+        <div class="kpi-tile present"><div class="num" id="kpiPresent">0</div><div class="lbl">Present</div></div>
+        <div class="kpi-tile absent"><div class="num" id="kpiAbsent">0</div><div class="lbl">Absent / pending</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <span>This session's log <span class="count-pill" id="logCount">0</span></span>
+        <span class="row no-print" style="margin:0;">
+          <button class="btn secondary small" id="exportCsv">Download CSV backup</button>
+          <button class="btn secondary small" id="exportXlsx">Download Excel (.xlsx)</button>
+        </span>
+      </h2>
+      <table class="log" id="logTable">
+        <thead><tr><th>Name</th><th>Jawatan</th><th>Time</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <span>Absentees / follow-up <span class="count-pill" id="absentCount">0</span></span>
+        <button class="btn secondary small" id="toggleAbsentees">Show list</button>
+      </h2>
+      <p class="hint">People from your Generate QR list who haven't been scanned yet this session.</p>
+      <div class="row no-print">
+        <button class="btn secondary small" id="copyAbsenteeEmails">Copy absentee emails</button>
+        <button class="btn secondary small" id="exportAbsenteesCsv">Download absentee CSV</button>
+      </div>
+      <p class="hint" id="absenteeStatus"></p>
+      <div class="absentee-list" id="absenteeList"></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ---------- state ----------
+let sessionName = '';
+let sessionDate = '';
+let sheetUrl = '';
+let attendees = [];
+let scanLog = [];
+let scannedIds = new Set();
+let stream = null;
+let rafId = null;
+let currentDeviceId = null;
+let audioCtx = null;
+
+const $ = (id) => document.getElementById(id);
+
+// ---------- tabs ----------
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('section.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    $('panel-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'scan') updateKpis();
+  });
+});
+
+// ---------- setup ----------
+const todayDate = new Date();
+$('sessionDate').value = todayDate.toLocaleDateString('en-GB');
+
+$('saveSession').addEventListener('click', ()=>{
+  sessionName = $('sessionName').value.trim() || 'Untitled session';
+  sessionDate = $('sessionDate').value.trim();
+  $('sessionBadgeText').textContent = sessionName + ' · ' + sessionDate;
+  $('sessionDot').classList.add('ok');
+  $('sessionDot').classList.remove('off');
+});
+
+$('saveUrl').addEventListener('click', ()=>{
+  sheetUrl = $('sheetUrl').value.trim();
+  $('urlStatus').textContent = sheetUrl ? 'Saved for this session.' : 'Please paste a Web App URL.';
+});
+
+$('testUrl').addEventListener('click', async ()=>{
+  sheetUrl = $('sheetUrl').value.trim();
+  if(!sheetUrl){ $('urlStatus').textContent = 'Paste a Web App URL first.'; return; }
+  await postToSheet({session:'TEST', name:'Test Person', jawatan:'Test Jawatan', date:sessionDate||todayDate.toLocaleDateString('en-GB'), time:todayDate.toLocaleTimeString()});
+  $('urlStatus').textContent = 'Test row sent — check your Google Sheet to confirm it arrived.';
+});
+
+$('copyScript').addEventListener('click', ()=>{
+  navigator.clipboard.writeText($('scriptBlock').textContent);
+  $('copyScript').textContent = 'Copied!';
+  setTimeout(()=> $('copyScript').textContent='Copy script', 1500);
+});
+
+// ---------- offline queue (localStorage) ----------
+const QUEUE_KEY = 'rekodhadir_pending_posts';
+
+function loadQueue(){
+  try{ return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+function saveQueue(q){
+  try{ localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }catch(e){ console.error('Queue save failed', e); }
+}
+function queueLength(){ return loadQueue().length; }
+
+async function postToSheet(payload){
+  if(!sheetUrl){ updateSyncBadge(); return; }
+  try{
+    await fetch(sheetUrl, {
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    });
+  }catch(err){
+    const q = loadQueue();
+    q.push(payload);
+    saveQueue(q);
+    console.error('Sheet post failed, queued for retry', err);
+  }
+  updateSyncBadge();
+}
+
+async function flushQueue(){
+  if(!sheetUrl || !navigator.onLine) { updateSyncBadge(); return; }
+  let q = loadQueue();
+  if(!q.length){ updateSyncBadge(); return; }
+  const remaining = [];
+  for(const payload of q){
+    try{
+      await fetch(sheetUrl, {
+        method:'POST', mode:'no-cors',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(payload)
+      });
+    }catch(err){
+      remaining.push(payload);
+    }
+  }
+  saveQueue(remaining);
+  updateSyncBadge();
+}
+
+function updateSyncBadge(){
+  const n = queueLength();
+  const dot = $('syncDot');
+  const txt = $('syncBadgeText');
+  dot.className = 'status-dot';
+  if(n === 0){
+    dot.classList.add('ok');
+    txt.textContent = navigator.onLine ? 'Synced' : 'Offline — nothing queued';
+  }else if(!navigator.onLine){
+    dot.classList.add('bad');
+    txt.textContent = `Offline — ${n} queued`;
+  }else{
+    dot.classList.add('warn');
+    txt.textContent = `Syncing ${n}…`;
+  }
+}
+window.addEventListener('online', ()=>{ updateSyncBadge(); flushQueue(); });
+window.addEventListener('offline', updateSyncBadge);
+setInterval(flushQueue, 20000);
+updateSyncBadge();
+
+// ---------- beep / buzzer ----------
+function beep(freq=880, duration=140, type='sine', gainPeak=0.35){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(gainPeak, audioCtx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration/1000);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration/1000 + 0.02);
+  }catch(err){ console.error('Beep failed', err); }
+}
+function successSound(){ beep(1046, 130, 'sine', 0.35); }
+function duplicateSound(){ beep(660, 110, 'sine', 0.3); setTimeout(()=>beep(660,110,'sine',0.3), 150); }
+function errorBuzzer(){ beep(180, 320, 'sawtooth', 0.25); }
+
+// ---------- toast ----------
+function showToast(message, type){
+  const layer = $('toastLayer');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = message;
+  layer.appendChild(t);
+  setTimeout(()=>{
+    t.classList.add('out');
+    setTimeout(()=> t.remove(), 260);
+  }, 3200);
+}
+
+// ---------- generate ----------
+$('genBtn').addEventListener('click', ()=>{
+  const lines = $('bulkInput').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  attendees = lines.map((line, i)=>{
+    const [name, jawatan, email] = line.split(',').map(s=>(s||'').trim());
+    return {id: 'A'+(i+1)+'-'+Math.random().toString(36).slice(2,7), name: name||'Unnamed', jawatan: jawatan||'', email: email||''};
+  });
+  renderQrGrid();
+  $('emailStatus').textContent = '';
+  updateKpis();
+});
+
+$('clearBtn').addEventListener('click', ()=>{
+  attendees = [];
+  $('bulkInput').value='';
+  renderQrGrid();
+  updateKpis();
+});
+
+$('printBtn').addEventListener('click', ()=> window.print());
+
+$('emailBtn').addEventListener('click', async ()=>{
+  if(!sheetUrl){
+    $('emailStatus').textContent = 'Set up your Web App URL in the Setup tab first — the same script sends the emails.';
+    return;
+  }
+  const withEmail = attendees.filter(a=>a.email);
+  if(!withEmail.length){
+    $('emailStatus').textContent = 'No email addresses found — add a third column per line, e.g. "Name, Jawatan, email@example.com", then regenerate.';
+    return;
+  }
+  $('emailBtn').disabled = true;
+  let sent = 0;
+  for(const a of withEmail){
+    const card = document.querySelector(`.qr-card[data-attendee-id="${a.id}"]`);
+    const canvas = card ? card.querySelector('canvas') : null;
+    if(!canvas) continue;
+    const qrImage = canvas.toDataURL('image/png');
+    await postToSheet({action:'send_qr', name:a.name, jawatan:a.jawatan, email:a.email, qrImage});
+    sent++;
+    $('emailStatus').textContent = `Sending… ${sent} / ${withEmail.length}`;
+    await new Promise(r=>setTimeout(r, 350));
+  }
+  $('emailBtn').disabled = false;
+  $('emailStatus').textContent = `Done — ${sent} email${sent===1?'':'s'} sent from your Google account. This is a "fire and forget" request, so spot-check a couple of inboxes.`;
+});
+
+function renderQrGrid(){
+  const grid = $('qrGrid');
+  grid.innerHTML = '';
+  $('qrCardWrap').style.display = attendees.length ? 'block' : 'none';
+  $('qrCount').textContent = attendees.length;
+  attendees.forEach(a=>{
+    const card = document.createElement('div');
+    card.className='qr-card';
+    card.dataset.attendeeId = a.id;
+    const box = document.createElement('div');
+    box.className='qrbox';
+    card.appendChild(box);
+    const nameEl = document.createElement('div');
+    nameEl.className='name'; nameEl.textContent=a.name;
+    const jawEl = document.createElement('div');
+    jawEl.className='jawatan'; jawEl.textContent=a.jawatan;
+    card.appendChild(nameEl);
+    card.appendChild(jawEl);
+    if(a.email){
+      const emailEl = document.createElement('div');
+      emailEl.className='jawatan'; emailEl.style.opacity='.7'; emailEl.textContent=a.email;
+      card.appendChild(emailEl);
+    }
+    grid.appendChild(card);
+    new QRCode(box, {text: JSON.stringify({id:a.id, name:a.name, jawatan:a.jawatan}), width:150, height:150, correctLevel: QRCode.CorrectLevel.M});
+  });
+}
+
+// ---------- scan: camera ----------
+const video = $('video');
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d', {willReadFrequently:true});
+
+async function populateCameraList(){
+  try{
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter(d=>d.kind==='videoinput');
+    const sel = $('cameraSelect');
+    sel.innerHTML = '';
+    cams.forEach((c,i)=>{
+      const opt = document.createElement('option');
+      opt.value = c.deviceId;
+      opt.textContent = c.label || `Camera ${i+1}`;
+      if(c.deviceId === currentDeviceId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.style.display = cams.length > 1 ? 'inline-block' : 'none';
+  }catch(e){ console.error('Could not list cameras', e); }
+}
+navigator.mediaDevices && navigator.mediaDevices.addEventListener && navigator.mediaDevices.addEventListener('devicechange', populateCameraList);
+
+$('cameraSelect').addEventListener('change', async (e)=>{
+  await openCamera(e.target.value);
+});
+
+async function openCamera(deviceId){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+  const constraints = deviceId ? {video:{deviceId:{exact:deviceId}}} : {video:{facingMode:'environment'}};
+  stream = await navigator.mediaDevices.getUserMedia(constraints);
+  currentDeviceId = deviceId || (stream.getVideoTracks()[0] && stream.getVideoTracks()[0].getSettings().deviceId) || null;
+  video.srcObject = stream;
+  await video.play();
+}
+
+$('startCam').addEventListener('click', async ()=>{
+  if(!audioCtx){ try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} }
+  if(typeof jsQR === 'undefined'){
+    $('scanIdle').style.display='block';
+    $('scanIdle').textContent = 'QR scanning library failed to load — check your internet connection and reload the page.';
+    return;
+  }
+  try{
+    await openCamera(currentDeviceId);
+    video.style.display='block';
+    $('scanFrame').style.display='block';
+    $('fsBtn').style.display='block';
+    $('scanIdle').style.display='none';
+    $('startCam').disabled = true;
+    $('stopCam').disabled = false;
+    populateCameraList();
+    tick();
+  }catch(err){
+    $('scanIdle').style.display='block';
+    $('scanIdle').textContent = 'Camera unavailable: ' + err.message + ' — try "Upload QR photo" instead, or check camera permissions.';
+  }
+});
+
+$('stopCam').addEventListener('click', stopCamera);
+function stopCamera(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  if(rafId) cancelAnimationFrame(rafId);
+  video.style.display='none';
+  $('scanFrame').style.display='none';
+  $('fsBtn').style.display='none';
+  $('scanIdle').style.display='block';
+  $('scanIdle').textContent='Camera off\ntap "Start camera" above';
+  $('startCam').disabled=false;
+  $('stopCam').disabled=true;
+  if(document.fullscreenElement) document.exitFullscreen && document.exitFullscreen();
+}
+
+// ---------- fullscreen ----------
+$('fsBtn').addEventListener('click', ()=>{
+  const stage = $('scanStage');
+  if(!document.fullscreenElement){
+    (stage.requestFullscreen || stage.webkitRequestFullscreen || (()=>{})).call(stage);
+    $('fsBtn').textContent = '⤡ Exit fullscreen';
+  }else{
+    document.exitFullscreen ? document.exitFullscreen() : (document.webkitExitFullscreen && document.webkitExitFullscreen());
+  }
+});
+document.addEventListener('fullscreenchange', ()=>{
+  $('fsBtn').textContent = document.fullscreenElement ? '⤡ Exit fullscreen' : '⤢ Fullscreen';
+});
+
+// ---------- scan loop ----------
+let lastScanTs = 0;
+function tick(){
+  if(video.readyState === video.HAVE_ENOUGH_DATA){
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    if(code && Date.now() - lastScanTs > 1200){
+      lastScanTs = Date.now();
+      handleScan(code.data);
+    }
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+$('fileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const img = new Image();
+  img.onload = ()=>{
+    canvas.width = img.width; canvas.height = img.height;
+    ctx.drawImage(img,0,0);
+    const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    if(code) handleScan(code.data);
+    else { errorBuzzer(); showToast('✕ No QR code found in that photo.', 'error'); }
+  };
+  img.src = URL.createObjectURL(file);
+});
+
+function handleScan(text){
+  let data;
+  try{ data = JSON.parse(text); }catch(e){ errorBuzzer(); showToast('✕ Unrecognised QR code.', 'error'); return; }
+  if(!data.name){ errorBuzzer(); showToast('✕ Unrecognised QR code.', 'error'); return; }
+  recordAttendance({id: data.id || data.name, name: data.name, jawatan: data.jawatan || ''});
+}
+
+function formatTime(d){ return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+
+function recordAttendance(base){
+  const now = new Date();
+  const entry = {
+    id: base.id,
+    name: base.name,
+    jawatan: base.jawatan || '',
+    date: sessionDate || now.toLocaleDateString('en-GB'),
+    time: formatTime(now)
+  };
+  if(scannedIds.has(entry.id)){
+    duplicateSound();
+    showToast(`⚠️ Already scanned! ${entry.name}`, 'dupe');
+    return;
+  }
+  scannedIds.add(entry.id);
+  scanLog.unshift(entry);
+  postToSheet({session: sessionName || 'Untitled session', ...entry});
+  successSound();
+  showToast(`✓ ${entry.name} logged at ${entry.time}`, 'success');
+  renderLog();
+  updateKpis();
+  renderSearch();
+}
+
+// ---------- manual search fallback ----------
+$('searchInput').addEventListener('input', renderSearch);
+function renderSearch(){
+  const q = $('searchInput').value.trim().toLowerCase();
+  const box = $('searchResults');
+  if(!q){ box.innerHTML = ''; return; }
+  const matches = attendees.filter(a =>
+    a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q)
+  ).slice(0, 8);
+  if(!matches.length){
+    box.innerHTML = `<div class="hint">No matches in the generated staff list. Check the name or use the Generate QR tab to add them first.</div>`;
+    return;
+  }
+  box.innerHTML = '';
+  matches.forEach(a=>{
+    const present = scannedIds.has(a.id);
+    const row = document.createElement('div');
+    row.className = 'search-row' + (present ? ' done' : '');
+    row.innerHTML = `<div class="who"><b>${escapeHtml(a.name)}</b><span>${escapeHtml(a.jawatan)}</span></div>`;
+    if(present){
+      const pill = document.createElement('span');
+      pill.className = 'pill-present';
+      pill.textContent = 'Checked in';
+      row.appendChild(pill);
+    }else{
+      const btn = document.createElement('button');
+      btn.className = 'btn secondary small';
+      btn.textContent = 'Check in';
+      btn.addEventListener('click', ()=> recordAttendance({id:a.id, name:a.name, jawatan:a.jawatan}));
+      row.appendChild(btn);
+    }
+    box.appendChild(row);
+  });
+}
+
+// ---------- KPIs ----------
+function updateKpis(){
+  const expected = attendees.length;
+  const present = scannedIds.size;
+  const absent = Math.max(expected - present, 0);
+  $('kpiExpected').textContent = expected;
+  $('kpiPresent').textContent = present + (expected ? ` (${Math.round(present/expected*100)}%)` : '');
+  $('kpiAbsent').textContent = absent;
+  renderAbsentees();
+}
+
+function renderAbsentees(){
+  const absentees = attendees.filter(a => !scannedIds.has(a.id));
+  $('absentCount').textContent = absentees.length;
+  const list = $('absenteeList');
+  if(list.classList.contains('open')){
+    list.innerHTML = absentees.length
+      ? absentees.map(a => `<div class="absentee-row"><span>${escapeHtml(a.name)} — ${escapeHtml(a.jawatan)}</span><span>${escapeHtml(a.email||'no email')}</span></div>`).join('')
+      : '<div class="hint">Everyone on the list has been scanned.</div>';
+  }
+}
+
+$('toggleAbsentees').addEventListener('click', ()=>{
+  const list = $('absenteeList');
+  list.classList.toggle('open');
+  $('toggleAbsentees').textContent = list.classList.contains('open') ? 'Hide list' : 'Show list';
+  renderAbsentees();
+});
+
+$('copyAbsenteeEmails').addEventListener('click', ()=>{
+  const emails = attendees.filter(a => !scannedIds.has(a.id) && a.email).map(a=>a.email);
+  if(!emails.length){ $('absenteeStatus').textContent = 'No absentee email addresses available.'; return; }
+  navigator.clipboard.writeText(emails.join(', '));
+  $('absenteeStatus').textContent = `Copied ${emails.length} email${emails.length===1?'':'s'} to clipboard.`;
+});
+
+$('exportAbsenteesCsv').addEventListener('click', ()=>{
+  const absentees = attendees.filter(a => !scannedIds.has(a.id));
+  if(!absentees.length){ $('absenteeStatus').textContent = 'No absentees to export.'; return; }
+  const rows = [['Name','Jawatan','Email']];
+  absentees.forEach(a => rows.push([a.name, a.jawatan, a.email||'']));
+  const csvContent = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csvContent], {type:'text/csv;charset=utf-8;'});
+  downloadBlob(blob, exportFilename('absentees', 'csv'));
+  $('absenteeStatus').textContent = `Downloaded ${absentees.length} absentee${absentees.length===1?'':'s'}.`;
+});
+
+// ---------- log + export ----------
+function renderLog(){
+  $('logCount').textContent = scanLog.length;
+  $('exportCsv').disabled = scanLog.length === 0;
+  $('exportXlsx').disabled = scanLog.length === 0;
+  $('logBody').innerHTML = scanLog.map(e=>
+    `<tr><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.jawatan)}</td><td>${e.time}</td></tr>`
+  ).join('');
+}
+$('exportCsv').disabled = true;
+$('exportXlsx').disabled = true;
+
+function csvEscape(v){
+  const s = (v==null ? '' : String(v));
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+
+$('exportCsv').addEventListener('click', ()=>{
+  if(!scanLog.length){ return; }
+  const rows = buildExportRows();
+  const csvContent = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csvContent], {type:'text/csv;charset=utf-8;'});
+  downloadBlob(blob, exportFilename('attendance', 'csv'));
+});
+
+$('exportXlsx').addEventListener('click', ()=>{
+  if(!scanLog.length || typeof XLSX === 'undefined'){
+    if(typeof XLSX === 'undefined') alert('Excel export library failed to load — check your internet connection and reload the page.');
+    return;
+  }
+  const rows = buildExportRows();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:22},{wch:22},{wch:22},{wch:12},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+  XLSX.writeFile(wb, exportFilename('attendance', 'xlsx'));
+});
+
+function buildExportRows(){
+  const rows = [['Session','Name','Jawatan','Date','Time']];
+  [...scanLog].reverse().forEach(e=>{
+    rows.push([sessionName || 'Untitled session', e.name, e.jawatan, e.date, e.time]);
+  });
+  return rows;
+}
+
+function exportFilename(kind, ext){
+  const safeSession = (sessionName || 'session').replace(/[^a-z0-9]+/gi,'_').toLowerCase();
+  const safeDate = (sessionDate || new Date().toLocaleDateString('en-GB')).replace(/[^a-z0-9]+/gi,'-');
+  return `${kind}_${safeSession}_${safeDate}.${ext}`;
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+updateKpis();
+</script>
+</body>
+</html>
